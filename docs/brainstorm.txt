@@ -1,0 +1,44 @@
+WORKSHOP MANAGEMENT AND STORAGE SYSTEM (MecStock)
+2. The system must manage service, parts and input costs  
+3. The system must manage customer and vehicle data
+4. The system must manage workshop invoicing
+5. The system must register suppliers and parts
+6. The system must store the history of procedures (costs, customers, ...)
+7. The system must provide a dashboard
+	7.1. The dashboard should contain how many customers have returned their car after the service and record whether it is a new problem
+8. The system must register the type of service and segment it
+9. Report of changes at the time of service (passbook) passbook by customer
+	9.1 Problem encountered, solution, estimated return date
+	
+	
+	
+1. Service order register
+( diagnostics, estimate, service description after completion, payment status, payment method, service status, date in, date out, returned, return id, mechanic id )
+
+2. Inputs and outputs ( general stock, WD-40 ) ( input price, qty, type )
+
+3. Customer and vehicle registration
+vehicle ( license plate, manufacturer, model, year )
+customer ( ... )
+mechanic ( ... )
+
+4. Dashboard ( to be defined )
+
+
+SCREENS - 
+START SCREEN
+3 BUTTONS MIN
+REGISTRATION, STOCK, SERVICE ORDER STATUS
+CUSTOMER REGISTRATION SCREEN
+ITEM REGISTRATION SCREEN
+SERVICE REGISTRATION SCREEN
+CAR REGISTRATION SCREEN
+DASHBOARD
+STOCK SCREEN
+CHANGE STATUS SCREEN
+PRINT SCREEN SERVICE SCREEN
+
+
+
+
+
