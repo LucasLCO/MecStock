@@ -1,0 +1,82 @@
+---
+config:
+  theme: mc
+---
+erDiagram
+    SERVICO ||--o{ CLIENTE : "FK cliente_ID"
+    SERVICO ||--o{ CARRO : "FK carro_ID"
+    SERVICO ||--o{ ATIVO : "FK ativo_ID"
+    SERVICO ||--o{ PAGAMENTO : "FK pagamento_ID"
+    SERVICO ||--o{ MECANICO : "FK mecanico_ID"
+    CLIENTE ||--o{ ENDERECO : "FK endereco_ID"
+    CARRO ||--o{ CUSTOMER : "FK customer_ID"
+    PAGAMENTO ||--o{ ATIVO : ""
+    MECANICO ||--o{ ATIVO : ""
+    SERVICO {
+        string servico_ID PK
+        string cliente_ID FK
+        string carro_ID FK
+        string ativo_ID FK
+        string diagnostico
+        string orcamento
+        string pagamento_ID FK
+        string descricao_servico
+        datetime data_entrada
+        datetime data_saida
+        boolean retornado
+        string mecanico_ID FK
+        string status
+    }
+    CLIENTE {
+        string cliente_ID PK
+        string Name
+        string Email
+        string CPF
+        string Telefone
+        string endereco_ID FK
+    }
+    ENDERECO {
+        string endereco_ID PK
+        string CEP
+        string rua
+        string bairro
+        string numero
+        string cidade
+        string estado
+        string complemento
+    }
+    CARRO {
+        string carro_ID PK
+        string modelo_carro
+        string montadora
+        string placa
+        string combustivel
+        int ano
+        string customer_ID FK
+    }
+    CUSTOMER {
+        string customer_ID PK
+    }
+    PAGAMENTO {
+        string pagamento_ID PK
+        float valor_inicial
+        float valor_total
+        string metodo_pagamento
+        string status
+    }
+    MECANICO {
+        string mecanico_ID PK
+        string Name
+        string Telefone
+        string Email
+    }
+    INSUMOS {
+        string insumo_ID PK
+        float preco
+        int qtd
+        string nome
+        string descricao
+    }
+    ATIVO {
+        string ativo_ID PK
+    }

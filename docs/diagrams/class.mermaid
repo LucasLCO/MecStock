@@ -1,0 +1,89 @@
+classDiagram
+    class Cliente {
+        +cliente_ID: int PK
+        +nome: string
+        +email: string
+        +cpf: string
+        +telefone: string
+        +endereco_ID: int FK
+        +__str__()
+    }
+    
+    class Endereco {
+        +endereco_ID: int PK
+        +cep: string
+        +rua: string
+        +bairro: string
+        +numero: int
+        +logradouro: string
+        +cidade: string
+        +estado: string
+        +__str__()
+    }
+    
+    class Carro {
+        +carro_ID: int PK
+        +modelo_carro: string
+        +montadora: string
+        +placa: string
+        +combustivel: string
+        +ano: int
+        +customer_ID: int FK
+        +__str__()
+    }
+    
+    class Servico {
+        +servico_ID: int PK
+        +cliente_ID: int FK
+        +carro_ID: int FK
+        +ativo_ID: int FK
+        +diagnostico: string
+        +orcamento: float
+        +pagamento_ID: int FK
+        +descricao_servico: string
+        +data_entrada: date
+        +data_saida: date
+        +retornado: boolean
+        +mecanico_ID: int FK
+        +__str__()
+    }
+    
+    class Mecanico {
+        +mecanico_ID: int PK
+        +nome: string
+        +telefone: string
+        +email: string
+        +__str__()
+    }
+    
+    class Pagamento {
+        +pagamento_ID: int PK
+        +valor_final: float
+        +valor_total: float
+        +metodo_pagamento: string
+        +status: string
+        +__str__()
+    }
+    
+    class Insumo {
+        +insumo_ID: int PK
+        +preco: float
+        +qtd: int
+        +nome: string
+        +descricao: string
+        +__str__()
+    }
+    
+    class Status {
+        +status: string
+        +__str__()
+    }
+    
+    Cliente "1" -- "1" Endereco : has
+    Cliente "1" -- "*" Carro : owns
+    Carro "1" -- "*" Servico : requires
+    Cliente "1" -- "*" Servico : requests
+    Mecanico "1" -- "*" Servico : performs
+    Servico "1" -- "1" Pagamento : generates
+    Servico "*" -- "*" Insumo : uses
+    Servico "1" -- "1" Status : has

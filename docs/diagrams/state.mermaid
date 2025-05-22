@@ -1,0 +1,25 @@
+---
+config:
+  theme: mc
+  look: classic
+  layout: dagre
+---
+stateDiagram
+  direction TB
+  [*] --> Cadastrado:Novo serviço criado
+  Cadastrado --> AguardandoAprovacao:Diagnóstico inicial realizado
+  AguardandoAprovacao --> Aprovado:Cliente aprova orçamento
+  AguardandoAprovacao --> Cancelado:Cliente recusa orçamento
+  Aprovado --> EmAndamento:Mecânico inicia trabalho
+  EmAndamento --> DiagnosticoAdicional:Problema adicional identificado
+  EmAndamento --> AguardandoPecas:Peças necessárias indisponíveis
+  DiagnosticoAdicional --> AguardandoAprovacao:Novo orçamento
+  AguardandoPecas --> EmAndamento:Peças recebidas
+  EmAndamento --> Finalizado:Serviço concluído
+  Finalizado --> Entregue:Pagamento processado
+  Entregue --> [*]
+  Cancelado --> [*]
+  note right of Cadastrado : Informações básicas do cliente e veículo
+  note right of AguardandoAprovacao : Orçamento enviado ao cliente
+  note right of EmAndamento : Aplicação do Strategy Pattern para<br>gerenciar diferentes fluxos de trabalho
+  note right of Finalizado : Estratégia de Pagamento aplicada

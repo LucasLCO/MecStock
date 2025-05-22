@@ -1,0 +1,52 @@
+sequenceDiagram
+    actor Customer
+    participant Frontend
+    participant Backend
+    participant DatabaseService
+    participant MechanicService
+    participant InventoryService
+    participant PaymentService
+    
+    Customer->>Frontend: Request service
+    Frontend->>Backend: POST /api/servicos/
+    Backend->>DatabaseService: Create service order
+    DatabaseService-->>Backend: Service created
+    Backend-->>Frontend: Service order details
+    Frontend-->>Customer: Service order confirmation
+    
+    Note over MechanicService: Diagnosis Phase
+    MechanicService->>Backend: PUT /api/servicos/{id}/diagnostico
+    Backend->>DatabaseService: Update with diagnosis
+    Backend->>InventoryService: Check required parts
+    InventoryService-->>Backend: Parts availability
+    
+    Backend->>DatabaseService: Update with budget
+    DatabaseService-->>Backend: Updated service
+    Backend-->>Frontend: Service order with budget
+    Frontend-->>Customer: Budget for approval
+    
+    Customer->>Frontend: Approve budget
+    Frontend->>Backend: PUT /api/servicos/{id}/approve
+    Backend->>DatabaseService: Update service status
+    Backend->>InventoryService: Reserve parts
+    InventoryService-->>Backend: Parts reserved
+    
+    Note over MechanicService: Service Execution
+    MechanicService->>Backend: PUT /api/servicos/{id}/start
+    Backend->>DatabaseService: Update service status to "In Progress"
+    MechanicService->>Backend: PUT /api/servicos/{id}/complete
+    Backend->>DatabaseService: Mark service as completed
+    
+    Customer->>Frontend: Process payment
+    Frontend->>PaymentService: Process payment
+    PaymentService->>Backend: Payment confirmation
+    Backend->>DatabaseService: Update payment status
+    
+    Backend-->>Frontend: Service completed
+    Frontend-->>Customer: Ready for pickup
+    
+    Note over Customer, Frontend: Optional return flow
+    Customer->>Frontend: Report issue after service
+    Frontend->>Backend: POST /api/servicos/{id}/return
+    Backend->>DatabaseService: Mark as returned
+    Backend->>MechanicService: Schedule re-examination
