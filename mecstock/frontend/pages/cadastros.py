@@ -542,7 +542,7 @@ def cadastro_mecanico_page():
                         
                                 new_btn = st.button(
                                     "Cadastrar Novo Mecânico", 
-                                    key="new_mec_btn",
+                                    key="new_mechanic_btn",  # Changed from "new_mec_btn"
                                     use_container_width=True
                                 )
                                 
