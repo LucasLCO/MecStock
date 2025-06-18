@@ -8,6 +8,7 @@ import altair as alt
 from streamlit_extras.card import card
 from streamlit_extras.metric_cards import style_metric_cards
 import requests
+from utils.auth import check_admin_access, add_logout_sidebar
 
 api_client = APIClient()
 
@@ -1200,6 +1201,12 @@ def main():
     
     if 'current_status' not in st.session_state:
         st.session_state.current_status = None
+    
+    # Check admin access first
+    check_admin_access()
+    
+    # Add logout to sidebar
+    add_logout_sidebar()
     
     services, clients_dict, cars_dict, mechanics_dict, statuses, insumos, pagamentos = fetch_all_data()
     

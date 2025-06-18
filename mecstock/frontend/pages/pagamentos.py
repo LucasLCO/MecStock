@@ -3,6 +3,7 @@ from utils.api_client import APIClient
 import json
 import pandas as pd
 from datetime import datetime
+from utils.auth import check_admin_access, add_logout_sidebar
 
 api_client = APIClient()
 
@@ -193,6 +194,8 @@ def fetch_data():
 
 def main():
     """Main function for the payments page"""
+    check_admin_access()
+    add_logout_sidebar()
     st.title("💰 Gestão de Pagamentos")
     
     services, payments = fetch_data()
