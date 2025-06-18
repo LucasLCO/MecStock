@@ -8,6 +8,9 @@ from plotly.subplots import make_subplots
 from utils.api_client import APIClient
 import os
 
+from utils.auth import check_admin_access, add_logout_sidebar
+check_admin_access()
+
 st.set_page_config(
     page_title="MecStock - Dashboard",
     page_icon="🔧",
