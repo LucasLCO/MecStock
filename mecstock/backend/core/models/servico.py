@@ -26,6 +26,11 @@ class Servico(models.Model):
     retornado = models.BooleanField(default=False)
     mecanico = models.ForeignKey('Mecanico', on_delete=models.CASCADE)
     status_atual = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Cadastrado')
+    # Add the home service fields
+    home_service = models.BooleanField(default=False)
+    service_address = models.ForeignKey('Endereco', on_delete=models.SET_NULL, null=True, blank=True, 
+                                       related_name='servicos_realizados',
+                                       help_text="Endereço onde o serviço será realizado (apenas para serviços domiciliares)")
 
     def __str__(self):
         return f'Serviço {self.servico_ID} - Cliente {self.cliente.nome}'

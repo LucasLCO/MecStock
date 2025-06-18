@@ -251,9 +251,9 @@ def generate_mock_data():
             'id': i + 1,
             'cliente': f'Cliente {i + 1}',
             'veiculo': f'Veículo {i + 1}',
-            'status': random.choice(statuses),
+            'status_atual': random.choice(statuses),
             'valor': random.randint(100, 2000),
-            'data_criacao': (datetime.now() - timedelta(days=random.randint(0, 30))).isoformat(),
+            'data_entrada': (datetime.now() - timedelta(days=random.randint(0, 30))).isoformat(),
             'data_conclusao': (datetime.now() - timedelta(days=random.randint(0, 15))).isoformat() if random.choice([True, False]) else None
         })
     
@@ -282,7 +282,7 @@ col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
     total_services = len(dashboard_data['services'])
     services_this_week = len([s for s in dashboard_data['services'] 
-                             if datetime.fromisoformat(s['data_criacao'].replace('Z', '')) > datetime.now() - timedelta(days=7)])
+                             if datetime.fromisoformat(s['data_entrada'].replace('Z', '')) > datetime.now() - timedelta(days=7)])
     
     st.markdown(f"""
     <div class="metric-card">
@@ -323,7 +323,7 @@ with col4:
     """, unsafe_allow_html=True)
 
 with col5:
-    pending_services = len([s for s in dashboard_data['services'] if s['status'] in ['Aguardando', 'Em Andamento']])
+    pending_services = len([s for s in dashboard_data['services'] if s['status_atual'] in ['Aguardando', 'Em Andamento']])
     st.markdown(f"""
     <div class="metric-card">
         <div class="metric-value">{pending_services}</div>
@@ -376,7 +376,7 @@ with chart_col1:
     # Status distribution chart
     status_counts = {}
     for service in dashboard_data['services']:
-        status = service['status']
+        status = service['status_atual']
         status_counts[status] = status_counts.get(status, 0) + 1
     
     if status_counts:
@@ -438,11 +438,11 @@ with bottom_col1:
     st.subheader("📋 Serviços Pendentes")
     
     pending_services_list = [s for s in dashboard_data['services'] 
-                           if s['status'] in ['Aguardando', 'Em Andamento']][:5]
+                           if s['status_atual'] in ['Aguardando', 'Em Andamento']][:5]
     
     if pending_services_list:
         for service in pending_services_list:
-            status_color = "#FFA500" if service['status'] == 'Aguardando' else "#4CAF50"
+            status_color = "#FFA500" if service['status_atual'] == 'Aguardando' else "#4CAF50"
             st.markdown(f"""
             <div class="activity-item">
                 <div class="activity-icon" style="background: {status_color}20; color: {status_color};">
@@ -453,7 +453,7 @@ with bottom_col1:
                         OS #{service['id']} - {service['cliente']}
                     </div>
                     <div class="activity-time">
-                        {service['status']} • R${service['valor']:,.2f}
+                        {service['status_atual']} • R${service['valor']:,.2f}
                     </div>
                 </div>
             </div>
@@ -464,11 +464,28 @@ with bottom_col1:
 with bottom_col2:
     st.subheader("🕒 Atividade Recente")
     
-    recent_services = sorted(dashboard_data['services'], 
-                           key=lambda x: x['data_criacao'], reverse=True)[:5]
+    recent_services = []
+    for s in dashboard_data['services']:
+        if s.get('data_ententrada'):
+            try:
+                date_str = s['data_entrada']
+                # Handle different date formats
+                if 'T' in str(date_str):
+                    # If it's a datetime string, parse it
+                    service_date = datetime.fromisoformat(str(date_str).replace('Z', ''))
+                else:
+                    # If it's just a date string, parse it as date and convert to datetime
+                    service_date = datetime.strptime(str(date_str), '%Y-%m-%d')
+                
+                # Check if service is from the last 7 days
+                if service_date > datetime.now() - timedelta(days=7):
+                    recent_services.append(s)
+            except (ValueError, TypeError):
+                # Skip services with invalid dates
+                continue
     
     for service in recent_services:
-        created_date = datetime.fromisoformat(service['data_criacao'].replace('Z', ''))
+        created_date = datetime.fromisoformat(service['data_entrada'].replace('Z', ''))
         time_ago = datetime.now() - created_date
         
         if time_ago.days > 0:
@@ -478,7 +495,7 @@ with bottom_col2:
         else:
             time_str = f"{time_ago.seconds // 60}min atrás"
         
-        icon = "✅" if service['status'] == 'Concluído' else "🔧"
+        icon = "✅" if service['status_atual'] == 'Concluído' else "🔧"
         
         st.markdown(f"""
         <div class="activity-item">

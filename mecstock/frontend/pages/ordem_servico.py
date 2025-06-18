@@ -7,14 +7,9 @@ import time
 import altair as alt
 from streamlit_extras.card import card
 from streamlit_extras.metric_cards import style_metric_cards
+import requests
 
 api_client = APIClient()
-
-st.set_page_config(
-    layout="wide", 
-    page_title="Ordem de Serviço",
-    initial_sidebar_state="collapsed"
-)
 
 STATUS_MAPPING = {
     "Cadastrado": "📝",
@@ -360,79 +355,92 @@ def display_kanban_columns(status_groups):
                                 st.session_state.current_view = "update_status"
 
 def show_service_details(service_id, services, clients_dict, cars_dict, mechanics_dict, statuses, insumos):
-    service = next((s for s in services if str(s.get("servico_ID")) == service_id), None)
+    service = next((s for s in services if str(s.get("servico_ID")) == str(service_id)), None)
     
     if not service:
-        st.error("Service not found")
+        st.error("Serviço não encontrado")
         return
     
+    # Get related data
     client_id = service.get("cliente")
-    client = clients_dict.get(client_id, {})
-    
     car_id = service.get("carro")
-    car = cars_dict.get(car_id, {})
-    
     mechanic_id = service.get("mecanico")
+    
+    client = clients_dict.get(client_id, {})
+    car = cars_dict.get(car_id, {})
     mechanic = mechanics_dict.get(mechanic_id, {})
     
-    if 'status_atual' in service:
-        current_status = service.get('status_atual', 'Cadastrado')
-    else:
-
-        service_statuses = [s for s in statuses if s.get('servico_ID') == int(service_id)]
-        if service_statuses:
-            service_statuses.sort(key=lambda x: x.get('data_atualizacao', ''), reverse=True)
-            current_status = service_statuses[0].get('status', 'Cadastrado')
-        else:
-            current_status = 'Cadastrado'
+    # Get address data if it's a home service
+    api_client = APIClient()
+    service_address = None
+    if service.get('home_service') and service.get('service_address'):
+        address_response = api_client.get(f"/api/enderecos/{service.get('service_address')}/")
+        if address_response.status_code == 200:
+            service_address = address_response.json()
     
-    status_emoji = STATUS_MAPPING.get(current_status, '📋')
+    # Display service information
+    col1, col2 = st.columns([2, 1])
     
-    col_back, col_title = st.columns([1, 6])
-    with col_back:
-        if st.button("← Voltar", use_container_width=True):
-            st.session_state.current_view = "kanban"
-            st.session_state.view_service_id = None
-            st.rerun()
-    
-    st.markdown(f"""
-    <div class="detail-header" style="border-bottom: 1px solid rgba(128, 128, 128, 0.2); padding-bottom: 10px;">
-        <h2>{status_emoji} Ordem de Serviço #{service_id} - {current_status}</h2>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    mc1, mc2, mc3, mc4 = st.columns(4)
-    
-    with mc1:
-        st.metric("Cliente", client.get('nome', 'N/A'))
-    
-    with mc2:
-        st.metric("Veículo", f"{car.get('montadora', '')} {car.get('modelo_carro', '')}")
-    
-    with mc3:
-        st.metric("Mecânico", mechanic.get('nome', 'N/A'))
-    
-    with mc4:
-
-        try:
-            exit_date = datetime.strptime(service.get("data_saida", ""), "%Y-%m-%d")
-            days_remaining = (exit_date - datetime.now()).days
+    with col1:
+        st.markdown("#### 📋 Informações do Serviço")
+        
+        # Show if it's a home service
+        if service.get('home_service'):
+            st.success("🏠 Serviço Domiciliar")
             
-            if days_remaining < 0:
-                label = "Atrasado"
-                delta_color = "inverse"
+            if service_address:
+                with st.container(border=True):
+                    st.markdown("**📍 Endereço do Serviço:**")
+                    st.markdown(f"{service_address.get('rua', '')}, {service_address.get('numero', '')}")
+                    if service_address.get('complemento'):
+                        st.markdown(f"Complemento: {service_address.get('complemento', '')}")
+                    st.markdown(f"{service_address.get('bairro', '')} - {service_address.get('cidade', '')}/{service_address.get('estado', '')}")
+                    st.markdown(f"CEP: {service_address.get('cep', '')}")
+        else:
+            st.info("🔧 Serviço na Oficina")
+        
+        st.markdown(f"<div style='padding: 10px; border-radius: 5px; background-color: transparent; border: 1px solid rgba(128, 128, 128, 0.15);'>{service.get('descricao_servico', 'N/A')}</div>", unsafe_allow_html=True)
+    
+    with col2:
+        with st.container(border=True):
+            st.markdown("#### 👤 Cliente")
+            st.markdown(f"**Nome:** {client.get('nome', 'N/A')}")
+            st.markdown(f"**Telefone:** {client.get('telefone', 'N/A')}")
+            st.markdown(f"**Email:** {client.get('email', 'N/A')}")
+        
+        with st.container(border=True):
+            st.markdown("#### 🚗 Veículo")
+            st.markdown(f"**Modelo:** {car.get('modelo_carro', 'N/A')}")
+            st.markdown(f"**Fabricante:** {car.get('montadora', 'N/A')}")
+            st.markdown(f"**Placa:** {car.get('placa', 'N/A')}")
+            st.markdown(f"**Ano:** {car.get('ano', 'N/A')}")
+            st.markdown(f"**Combustível:** {car.get('combustivel', 'N/A')}")
+        
+        with st.container(border=True):
+            st.markdown("#### 🧰 Mecânico")
+            st.markdown(f"**Nome:** {mechanic.get('nome', 'N/A')}")
+            st.markdown(f"**Telefone:** {mechanic.get('telefone', 'N/A')}")
+        
+
+        st.subheader("💰 Informações Financeiras e Datas")
+        f_col1, f_col2, f_col3, f_col4 = st.columns(4)
+        
+        with f_col1:
+            st.metric("Orçamento", f"R$ {service.get('orcamento', 0):.2f}")
+        
+        with f_col2:
+            st.metric("Data de Entrada", service.get("data_entrada", "N/A"))
+        
+        with f_col3:
+            st.metric("Prazo de Entrega", service.get("data_saida", "N/A"))
+        
+        with f_col4:
+    
+            if "pagamento" in service:
+                payment_id = service.get("pagamento")
+                st.metric("Status Pagamento", "Pendente")
             else:
-                label = "Prazo Restante"
-                delta_color = "normal"
-                
-            st.metric(
-                label,
-                f"{abs(days_remaining)} dias", 
-                delta=days_remaining,
-                delta_color=delta_color
-            )
-        except:
-            st.metric("Prazo", "N/A")
+                st.metric("Status Pagamento", "Não registrado")
     
     tab1, tab2, tab3 = st.tabs(["Detalhes", "Histórico", "Status"])
     
@@ -875,34 +883,173 @@ def show_new_service_form(clients_dict, cars_dict, mechanics_dict):
     clients = [{"id": k, "name": v.get("nome", "Unknown")} for k, v in clients_dict.items()]
     mechanics = [{"id": k, "name": v.get("nome", "Unknown")} for k, v in mechanics_dict.items()]
     
-    with st.form("new_service_form"):
-
-        client_options = [f"{c['name']} (ID: {c['id']})" for c in clients]
-        client_selection = st.selectbox("Cliente", ["Selecione um cliente..."] + client_options)
-        
-
-        car_selection = None
-        if client_selection != "Selecione um cliente...":
-            client_id = int(client_selection.split("ID: ")[1].rstrip(")"))
-            
+    # Fetch addresses data outside the form
+    api_client = APIClient()
+    addresses_response = api_client.get("/api/enderecos/")
+    addresses_dict = {}
+    if addresses_response.status_code == 200:
+        addresses_data = addresses_response.json()
+        addresses_dict = {addr['endereco_ID']: addr for addr in addresses_data}
     
-            client_cars = [
-                {"id": k, "info": f"{v.get('montadora', '')} {v.get('modelo_carro', '')} - {v.get('placa', '')}"}
-                for k, v in cars_dict.items() 
-                if v.get("Customer_ID") == client_id or v.get("cliente_ID") == client_id
-            ]
-            
-            if client_cars:
-                car_options = [f"{c['info']} (ID: {c['id']})" for c in client_cars]
-                car_selection = st.selectbox("Veículo", ["Selecione um veículo..."] + car_options)
-            else:
-                st.warning("Este cliente não possui veículos cadastrados.")
+    # Initialize session state for form data
+    if 'form_client_selection' not in st.session_state:
+        st.session_state.form_client_selection = "Selecione um cliente..."
+    if 'form_home_service' not in st.session_state:
+        st.session_state.form_home_service = False
+    if 'form_address_selection' not in st.session_state:
+        st.session_state.form_address_selection = None
+    
+    # Client selection outside form for dynamic updates
+    st.markdown("### Seleção de Cliente e Veículo")
+    client_options = [f"{c['name']} (ID: {c['id']})" for c in clients]
+    client_selection = st.selectbox(
+        "Cliente", 
+        ["Selecione um cliente..."] + client_options,
+        key="client_selector"
+    )
+    
+    # Update session state
+    st.session_state.form_client_selection = client_selection
+    
+    # Vehicle selection (dynamic based on client)
+    car_selection = None
+    client_id = None
+    if client_selection != "Selecione um cliente...":
+        client_id = int(client_selection.split("ID: ")[1].rstrip(")"))
         
-
+        client_cars = [
+            {"id": k, "info": f"{v.get('montadora', '')} {v.get('modelo_carro', '')} - {v.get('placa', '')}"}
+            for k, v in cars_dict.items() 
+            if v.get("Customer_ID") == client_id or v.get("cliente_ID") == client_id
+        ]
+        
+        if client_cars:
+            car_options = [f"{c['info']} (ID: {c['id']})" for c in client_cars]
+            car_selection = st.selectbox(
+                "Veículo", 
+                ["Selecione um veículo..."] + car_options,
+                key="car_selector"
+            )
+        else:
+            st.warning("Este cliente não possui veículos cadastrados.")
+    
+    # Service location selection outside form
+    st.markdown("### Local do Serviço")
+    home_service = st.checkbox(
+        "Serviço Domiciliar", 
+        value=st.session_state.form_home_service,
+        help="Marque se este serviço será realizado na residência do cliente",
+        key="home_service_checkbox"
+    )
+    st.session_state.form_home_service = home_service
+    
+    # Address selection (dynamic based on home service and client)
+    selected_address_id = None
+    new_address_data = {}
+    
+    if home_service and client_id:
+        # Get client's current address
+        client_data = clients_dict.get(client_id, {})
+        client_address_id = client_data.get('endereco_ID')
+        
+        # Create address options
+        address_options = []
+        if client_address_id and client_address_id in addresses_dict:
+            addr = addresses_dict[client_address_id]
+            address_str = f"{addr.get('rua', '')}, {addr.get('numero', '')}, {addr.get('bairro', '')} - {addr.get('cidade', '')}/{addr.get('estado', '')} (Endereço Principal)"
+            address_options.append(f"{address_str} (ID: {client_address_id})")
+        
+        # Add option to use a different address or create new one
+        address_options.extend(["Usar outro endereço...", "Cadastrar novo endereço..."])
+        
+        address_selection = st.selectbox(
+            "Endereço para o serviço",
+            address_options,
+            help="Selecione o endereço onde o serviço será realizado",
+            key="address_selector"
+        )
+        
+        # Handle different address selection
+        if address_selection == "Usar outro endereço...":
+            # Show all available addresses
+            all_address_options = []
+            for addr_id, addr in addresses_dict.items():
+                if addr_id != client_address_id:  # Exclude client's current address
+                    addr_str = f"{addr.get('rua', '')}, {addr.get('numero', '')}, {addr.get('bairro', '')} - {addr.get('cidade', '')}/{addr.get('estado', '')}"
+                    all_address_options.append(f"{addr_str} (ID: {addr_id})")
+            
+            if all_address_options:
+                other_address_selection = st.selectbox(
+                    "Selecione outro endereço",
+                    ["Selecione um endereço..."] + all_address_options,
+                    key="other_address_selector"
+                )
+                if other_address_selection != "Selecione um endereço...":
+                    selected_address_id = int(other_address_selection.split("ID: ")[1].rstrip(")"))
+            else:
+                st.info("Nenhum outro endereço disponível. Use a opção 'Cadastrar novo endereço'.")
+        
+        elif address_selection == "Cadastrar novo endereço...":
+            # Show form to create new address
+            st.markdown("#### Novo Endereço")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                new_address_data['cep'] = st.text_input("CEP", max_chars=8, key="new_cep")
+                new_address_data['rua'] = st.text_input("Rua", key="new_rua")
+                new_address_data['numero'] = st.text_input("Número", key="new_numero")
+                new_address_data['bairro'] = st.text_input("Bairro", key="new_bairro")
+            
+            with col2:
+                new_address_data['complemento'] = st.text_input("Complemento (opcional)", key="new_complemento")
+                new_address_data['cidade'] = st.text_input("Cidade", key="new_cidade")
+                
+                estados_brasileiros = [
+                    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", 
+                    "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", 
+                    "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+                ]
+                new_address_data['estado'] = st.selectbox("Estado", estados_brasileiros, key="new_estado")
+            
+            # Auto-fill from CEP if provided
+            if new_address_data.get('cep') and len(new_address_data['cep']) == 8:
+                if st.button("Buscar CEP", type="secondary", key="buscar_cep"):
+                    try:
+                        response = requests.get(f"https://viacep.com.br/ws/{new_address_data['cep']}/json/")
+                        if response.status_code == 200:
+                            address_data = response.json()
+                            if 'erro' not in address_data:
+                                st.success("CEP encontrado! Atualize a página para ver os dados preenchidos.")
+                                # Store in session state for next render
+                                st.session_state.cep_data = address_data
+                            else:
+                                st.error("CEP não encontrado.")
+                    except Exception as e:
+                        st.error(f"Erro ao buscar CEP: {str(e)}")
+            
+            # Use CEP data if available
+            if 'cep_data' in st.session_state:
+                cep_data = st.session_state.cep_data
+                if not new_address_data.get('rua'):
+                    new_address_data['rua'] = cep_data.get('logradouro', '')
+                if not new_address_data.get('bairro'):
+                    new_address_data['bairro'] = cep_data.get('bairro', '')
+                if not new_address_data.get('cidade'):
+                    new_address_data['cidade'] = cep_data.get('localidade', '')
+                if not new_address_data.get('estado'):
+                    new_address_data['estado'] = cep_data.get('uf', '')
+        
+        elif address_selection and address_selection not in ["Usar outro endereço...", "Cadastrar novo endereço..."]:
+            # Extract the address ID from the selected option
+            selected_address_id = int(address_selection.split("ID: ")[1].rstrip(")"))
+    
+    # Now the actual form with remaining fields
+    with st.form("new_service_form"):
+        # Mechanic selection
         mechanic_options = [f"{m['name']} (ID: {m['id']})" for m in mechanics]
         mechanic_selection = st.selectbox("Mecânico", ["Selecione um mecânico..."] + mechanic_options)
         
-
+        # Diagnostic and service fields
         st.markdown("### Diagnóstico e Serviço")
         diagnostico = st.text_area("Diagnóstico (o que está errado)", 
                                   placeholder="Descreva os problemas identificados...",
@@ -912,7 +1059,7 @@ def show_new_service_form(clients_dict, cars_dict, mechanics_dict):
                                         placeholder="Descreva os serviços que serão realizados...",
                                         height=100)
         
-
+        # Financial and date fields
         st.markdown("### Informações Financeiras")
         
         col1, col2 = st.columns(2)
@@ -921,12 +1068,10 @@ def show_new_service_form(clients_dict, cars_dict, mechanics_dict):
         with col2:
             valor_total = st.number_input("Valor Total (R$)", min_value=0.0, step=10.0, format="%.2f", value=orcamento)
         
-
         payment_methods = ["Dinheiro", "Cartão de Crédito", "Cartão de Débito", "Pix", "Transferência", "Pendente"]
         payment_method = st.selectbox("Método de Pagamento", payment_methods)
         payment_status = st.selectbox("Status do Pagamento", ["Pendente", "Parcial", "Pago"])
         
-
         st.markdown("### Datas")
         col1, col2 = st.columns(2)
         with col1:
@@ -934,7 +1079,6 @@ def show_new_service_form(clients_dict, cars_dict, mechanics_dict):
         with col2:
             exit_date = st.date_input("Data de Saída Prevista", datetime.now() + timedelta(days=3))
         
-
         initial_status = st.selectbox(
             "Status Inicial",
             ["Cadastrado", "Aguardando Aprovação"]
@@ -943,7 +1087,12 @@ def show_new_service_form(clients_dict, cars_dict, mechanics_dict):
         submitted = st.form_submit_button("Criar Ordem de Serviço", type="primary")
         
         if submitted:
-            if client_selection == "Selecione um cliente...":
+            # Get the current values from session state and selectors
+            current_client = st.session_state.form_client_selection
+            current_home_service = st.session_state.form_home_service
+            
+            # Validation
+            if current_client == "Selecione um cliente...":
                 st.error("Por favor, selecione um cliente.")
             elif car_selection is None or car_selection == "Selecione um veículo...":
                 st.error("Por favor, selecione um veículo.")
@@ -953,13 +1102,28 @@ def show_new_service_form(clients_dict, cars_dict, mechanics_dict):
                 st.error("Por favor, forneça um diagnóstico do problema.")
             elif not descricao_servico:
                 st.error("Por favor, forneça uma descrição do serviço a ser realizado.")
+            elif current_home_service and 'address_selector' in st.session_state and st.session_state.address_selector == "Cadastrar novo endereço..." and not all([new_address_data.get('cep'), new_address_data.get('rua'), new_address_data.get('numero'), new_address_data.get('bairro'), new_address_data.get('cidade')]):
+                st.error("Por favor, preencha todos os campos obrigatórios do novo endereço.")
             else:
-        
-                client_id = int(client_selection.split("ID: ")[1].rstrip(")"))
+                # Process the form submission
+                service_address_id = selected_address_id
+                
+                # Handle new address creation if needed
+                if current_home_service and 'address_selector' in st.session_state and st.session_state.address_selector == "Cadastrar novo endereço...":
+                    address_response = api_client.post("/api/enderecos/", json=new_address_data)
+                    if address_response.status_code == 201:
+                        address_data = address_response.json()
+                        service_address_id = address_data.get("endereco_ID") or address_data.get("id")
+                    else:
+                        st.error(f"Falha ao criar novo endereço: {address_response.text}")
+                        st.stop()
+                
+                # Continue with service creation
+                client_id = int(current_client.split("ID: ")[1].rstrip(")"))
                 car_id = int(car_selection.split("ID: ")[1].rstrip(")"))
                 mechanic_id = int(mechanic_selection.split("ID: ")[1].rstrip(")"))
                 
-        
+                # Create payment record
                 payment_data = {
                     "valor_final": orcamento,
                     "valor_total": valor_total,
@@ -972,7 +1136,7 @@ def show_new_service_form(clients_dict, cars_dict, mechanics_dict):
                 if payment_response.status_code == 201:
                     payment_id = payment_response.json().get("pagamento_ID")
                     
-            
+                    # Create service record
                     service_data = {
                         "cliente": client_id,
                         "carro": car_id,
@@ -983,14 +1147,14 @@ def show_new_service_form(clients_dict, cars_dict, mechanics_dict):
                         "pagamento": payment_id,
                         "data_entrada": entry_date.strftime("%Y-%m-%d"),
                         "data_saida": exit_date.strftime("%Y-%m-%d"),
-                        "status_atual": initial_status
+                        "status_atual": initial_status,
+                        "home_service": current_home_service,
+                        "service_address": service_address_id if current_home_service else None
                     }
                     
-            
                     response = api_client.post("/api/servicos/", json=service_data)
                     
                     if response.status_code == 201:
-                
                         service_id = response.json().get("servico_ID", 0)
                         status_data = {
                             "servico_ID": service_id,
@@ -1003,6 +1167,10 @@ def show_new_service_form(clients_dict, cars_dict, mechanics_dict):
                         
                         if status_response.status_code == 201:
                             st.success("Ordem de serviço criada com sucesso!")
+                            # Clear session state
+                            for key in ['form_client_selection', 'form_home_service', 'form_address_selection', 'cep_data']:
+                                if key in st.session_state:
+                                    del st.session_state[key]
                             time.sleep(1)
                             st.session_state.current_view = "kanban"
                             st.rerun()
