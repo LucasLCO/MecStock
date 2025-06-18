@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import json
 from utils.api_client import APIClient
+from utils.auth import check_admin_access, add_logout_sidebar
 
 def cadastro_cliente_page():
     st.title("Cadastro de Cliente")
@@ -542,7 +543,7 @@ def cadastro_mecanico_page():
                         
                                 new_btn = st.button(
                                     "Cadastrar Novo Mecânico", 
-                                    key="new_mec_btn",
+                                    key="new_mechanic_btn",  # Changed from "new_mec_btn"
                                     use_container_width=True
                                 )
                                 
@@ -558,6 +559,9 @@ def cadastro_mecanico_page():
                         st.error(f"Erro durante o cadastro: {str(e)}")
 
 def main():
+    check_admin_access()
+    add_logout_sidebar()
+
     st.title("Sistema de Cadastros")
     
     tab1, tab2, tab3 = st.tabs(["Cadastro de Cliente", "Cadastro de Carro", "Cadastro de Mecânico"])

@@ -2,8 +2,13 @@ import streamlit as st
 import pandas as pd
 import requests
 from utils.api_client import APIClient
+from utils.auth import check_admin_access, add_logout_sidebar
+
+check_admin_access()
 
 st.title("Gerenciamento de Cadastros")
+
+add_logout_sidebar()
 
 api_client = APIClient()
 

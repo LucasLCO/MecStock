@@ -3,8 +3,15 @@ import requests
 import pandas as pd
 from streamlit_searchbox import st_searchbox
 import plotly.express as px
+from utils.auth import check_admin_access, add_logout_sidebar
+
+# Check admin access first (before any other Streamlit commands)
+check_admin_access()
 
 st.title("Stock Management")
+
+# Add logout sidebar
+add_logout_sidebar()
 
 def fetch_stock_data():
     response = requests.get("http://localhost:8000/api/insumos/")
