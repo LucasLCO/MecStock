@@ -4,7 +4,7 @@ import os
 
 class APIClient:
     def __init__(self):
-        self.base_url = os.getenv("API_URL", "http://localhost:8000")
+        self.base_url = os.getenv("API_URL", "http://mecstock.onrender.com:8000")
         self.session = requests.Session()
     
     def get(self, endpoint, params=None):
