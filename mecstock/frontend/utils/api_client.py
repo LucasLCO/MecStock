@@ -19,7 +19,7 @@ class APIClient:
     def delete(self, endpoint):
         return self.session.delete(f"{self.base_url}{endpoint}")
 
-BASE_URL = "http://localhost:8000/api"
+BASE_URL = "http://mecstock.onrender.com:8000/api"
 
 def get_clientes():
     response = requests.get(f"{BASE_URL}/clientes/")
